@@ -109,17 +109,25 @@ section.alt{background:var(--paper-2)}
 .static .dday{margin-top:30px}
 
 /* ---------- 갤러리 ---------- */
-.gal{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.gal button{aspect-ratio:3/4;border-radius:10px;background-repeat:no-repeat;overflow:hidden;position:relative}
-.gal button:focus-visible,.arch:focus-visible{outline:2px solid var(--red);outline-offset:3px}
-.g1{background:var(--img-a) 70% 84%/165% auto}
-.g2{background:var(--img-b) 56% 22%/190% auto}
-.gal-note{margin-top:14px;font-family:var(--sans);font-size:12px;color:var(--ink-3)}
+.gal{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.gal button{aspect-ratio:1;border-radius:6px;overflow:hidden;position:relative;background:#E9E1D6;padding:0}
+.gal img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .4s}
+.gal img.ok{opacity:1}
+.gal button.wide{grid-column:span 2;aspect-ratio:auto}
+.gal button.extra{display:none}
+.gal.all button.extra{display:block}
+.gal button:focus-visible,.arch:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.gal-more{margin-top:14px;width:100%;height:46px;border-radius:10px;border:1px solid var(--line);background:#fff;font-family:var(--sans);font-size:14px;color:var(--ink);display:flex;align-items:center;justify-content:center;gap:6px}
+.gal-more svg{width:14px;height:14px;transition:transform .2s}
+.gal.all + .gal-more svg{transform:rotate(180deg)}
+.gal-note{margin-top:12px;font-family:var(--sans);font-size:12px;color:var(--ink-3)}
 
-.lb{position:fixed;inset:0;background:rgba(20,14,12,.92);z-index:50;display:none;align-items:center;justify-content:center;flex-direction:column}
+.lb{position:fixed;inset:0;background:rgba(20,14,12,.97);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);z-index:50;display:none;align-items:center;justify-content:center;flex-direction:column}
 .lb.open{display:flex}
-.lb-img{width:min(92vw,520px);aspect-ratio:3/4;background-size:contain;background-position:center;background-repeat:no-repeat}
-.lb-x{position:absolute;top:14px;right:14px;width:44px;height:44px;color:#fff;font-size:28px;line-height:44px}
+.lb-img{width:min(94vw,520px);max-height:78vh;max-height:min(78vh,calc(100dvh - 96px));aspect-ratio:3/4;object-fit:contain;background:center/contain no-repeat;transition:opacity .25s}
+.lb-img.fade{opacity:.25}
+.lb-x{position:absolute;top:14px;right:14px;width:44px;height:44px;color:#fff;font-size:28px;line-height:44px;border-radius:50%}
+.lb-x:focus:not(:focus-visible){outline:none}
 .lb-nav{display:flex;gap:28px;margin-top:18px;color:#fff;font-family:var(--sans);font-size:14px;align-items:center}
 .lb-nav button{width:44px;height:44px;border:1px solid rgba(255,255,255,.35);border-radius:50%;color:#fff;font-size:18px}
 
@@ -215,7 +223,7 @@ details[open] summary::after{transform:rotate(-135deg)}
 
   <!-- 3. 아치 사진 -->
   <section class="reveal">
-    <button class="arch" data-open="1" aria-label="색동 저고리에 검은 전복을 입고 복건을 쓴 시현이가 돌잡이 상 앞에 앉아 있는 사진, 누르면 크게 보기"></button>
+    <button class="arch" data-open="2" aria-label="색동 저고리에 검은 전복을 입고 복건을 쓴 시현이가 돌잡이 상 앞에 앉아 있는 사진, 누르면 크게 보기"></button>
     <p class="arch-cap">작고 여린 손으로 세상을 처음 만지던 아이가<br>어느덧 첫 번째 생일을 맞았습니다.</p>
   </section>
 
@@ -237,10 +245,9 @@ details[open] summary::after{transform:rotate(-135deg)}
   <section class="reveal">
     <div class="eyebrow">Gallery</div>
     <h2 class="h2">시현이의 첫돌 사진</h2>
-    <div class="gal">
-      <button class="g1" data-open="0" aria-label="홍색 돌복 사진 크게 보기"></button>
-      <button class="g2" data-open="1" aria-label="색동 돌복 사진 크게 보기"></button>
-    </div>
+    <div class="gal" id="gal"></div>
+    <button class="gal-more no-static" id="galMore" hidden><span id="galMoreLabel"></span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
     <p class="gal-note no-static">사진을 누르면 크게 보실 수 있어요</p>
   </section>
 
@@ -305,7 +312,7 @@ details[open] summary::after{transform:rotate(-135deg)}
 
 <div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="사진 크게 보기">
   <button class="lb-x" id="lbX" aria-label="닫기">&times;</button>
-  <div class="lb-img" id="lbImg"></div>
+  <img class="lb-img" id="lbImg" alt="">
   <div class="lb-nav"><button id="lbP" aria-label="이전 사진">&#8249;</button><span id="lbN">1 / 2</span><button id="lbN2" aria-label="다음 사진">&#8250;</button></div>
 </div>
 <div class="toast" id="toast" role="status"></div>
@@ -498,12 +505,67 @@ const INVITE = {
     };
   });
 
+  // 갤러리: 3열 썸네일, 처음 9장 + 더보기
+  const GALLERY = [
+  {"src":"gallery/hanbok_laugh.jpg","thumb":"gallery/hanbok_laugh_t.jpg","pos":"50% 34%","alt":"홍색 돌복을 입고 활짝 웃는 시현이","wide":false},
+  {"src":"@a","thumb":"@a","pos":"44% 78%","alt":"꽃 옆에 선 홍색 돌복 차림의 시현이","wide":false},
+  {"src":"@b","thumb":"@b","pos":"50% 30%","alt":"돌잡이 상 앞에서 떡을 먹는 시현이","wide":false},
+  {"src":"gallery/family_smile.jpg","thumb":"gallery/family_smile_t.jpg","pos":"50% 62%","alt":"엄마 아빠와 나란히 앉아 웃는 가족 사진","wide":false},
+  {"src":"gallery/family_hold.jpg","thumb":"gallery/family_hold_t.jpg","pos":"50% 36%","alt":"엄마 아빠 품에 안긴 시현이","wide":false},
+  {"src":"gallery/party_smile.jpg","thumb":"gallery/party_smile_t.jpg","pos":"50% 55%","alt":"파란 소파에서 장난감 가방을 들고 웃는 시현이","wide":false},
+  {"src":"gallery/party_clap.jpg","thumb":"gallery/party_clap_t.jpg","pos":"40% 36%","alt":"파란 소파 앞에서 손뼉 치는 시현이","wide":false},
+  {"src":"gallery/truck_reach.jpg","thumb":"gallery/truck_reach_t.jpg","pos":"50% 26%","alt":"장난감 굴착기에 올라 손을 뻗는 시현이","wide":false},
+  {"src":"gallery/truck_lookup.jpg","thumb":"gallery/truck_lookup_t.jpg","pos":"50% 28%","alt":"장난감 트럭들 사이에서 위를 올려다보는 시현이","wide":false},
+  {"src":"gallery/saekdong_crawl.jpg","thumb":"gallery/saekdong_crawl_t.jpg","pos":"50% 30%","alt":"자개장 위로 기어오르는 색동 돌복 차림의 시현이","wide":true},
+  {"src":"gallery/saekdong_cry.jpg","thumb":"gallery/saekdong_cry_t.jpg","pos":"50% 26%","alt":"돌잡이 상 앞에서 울먹이는 시현이","wide":false},
+  {"src":"gallery/family_clap.jpg","thumb":"gallery/family_clap_t.jpg","pos":"50% 56%","alt":"바닥에 앉아 함께 손뼉 치는 가족","wide":true},
+  {"src":"gallery/family_cry.jpg","thumb":"gallery/family_cry_t.jpg","pos":"50% 62%","alt":"엄마 아빠 사이에서 우는 시현이","wide":false},
+  {"src":"gallery/party_bite.jpg","thumb":"gallery/party_bite_t.jpg","pos":"50% 42%","alt":"장난감 가방을 깨무는 시현이","wide":false},
+  {"src":"gallery/party_cry.jpg","thumb":"gallery/party_cry_t.jpg","pos":"45% 38%","alt":"선글라스를 쥐고 우는 시현이","wide":false},
+  {"src":"gallery/truck_sit.jpg","thumb":"gallery/truck_sit_t.jpg","pos":"50% 40%","alt":"장난감 굴착기 앞에 앉은 시현이","wide":false}
+];
+  const FIRST = 9;
+  // '@a' / '@b' = 페이지에 이미 들어 있는 사진(CSS --img-a / --img-b)을 다시 내려받지 않고 쓴다
+  const inlineUrl = k => getComputedStyle(root).getPropertyValue('--img-' + k).trim().replace(/^url\(\s*["']?|["']?\s*\)$/g, '');
+  GALLERY.forEach(g => ['src','thumb'].forEach(p => { if (g[p][0] === '@') g[p] = inlineUrl(g[p].slice(1)); }));
+  safe('gallery', () => {
+    const box = $('#gal');
+    box.innerHTML = GALLERY.map((g, i) =>
+      `<button data-open="${i}" class="${i >= FIRST ? 'extra' : ''}${g.wide ? ' wide' : ''}" aria-label="${esc(g.alt)}, 크게 보기"><img alt="" decoding="async" style="object-position:${esc(g.pos)}"></button>`).join('');
+    const imgsEl = [...box.querySelectorAll('img')];
+    const load = im => { if (!im.getAttribute('src')) { const g = GALLERY[imgsEl.indexOf(im)]; im.onload = () => im.classList.add('ok'); im.src = g.thumb; } };
+    imgsEl.slice(0, FIRST).forEach(load);   // 처음 9장은 바로, 나머지는 '더보기'를 누를 때 불러온다
+    const more = $('#galMore');
+    if (GALLERY.length > FIRST) {
+      const rest = GALLERY.length - FIRST;
+      const label = () => $('#galMoreLabel').textContent = box.classList.contains('all') ? '사진 접기' : `사진 더보기 (+${rest})`;
+      label(); more.hidden = false;
+      more.onclick = () => {
+        const opening = !box.classList.contains('all');
+        if (opening) imgsEl.forEach(load);
+        box.classList.toggle('all'); label();
+        if (!opening) box.closest('section').scrollIntoView({block:'start', behavior:'smooth'});
+      };
+    }
+  });
+
   // 사진 크게 보기
   safe('lightbox', () => {
-    const imgs = ['var(--img-a)', 'var(--img-b)'];
+    const imgs = GALLERY;
     let cur = 0, lastFocus = null;
-    const lb = $('#lb');
-    const show = i => { cur = (i + imgs.length) % imgs.length; $('#lbImg').style.backgroundImage = imgs[cur]; $('#lbN').textContent = `${cur+1} / ${imgs.length}`; };
+    const lb = $('#lb'), big = $('#lbImg');
+    const preload = i => { const g = imgs[(i + imgs.length) % imgs.length]; if (g) { const p = new Image(); p.src = g.src; } };
+    const show = i => {
+      cur = (i + imgs.length) % imgs.length;
+      const g = imgs[cur];
+      big.classList.add('fade');
+      big.style.backgroundImage = `url("${g.thumb}")`;
+      big.onload = big.onerror = () => big.classList.remove('fade');
+      big.src = g.src; big.alt = g.alt;
+      if (big.complete && big.naturalWidth) big.classList.remove('fade');
+      $('#lbN').textContent = `${cur+1} / ${imgs.length}`;
+      preload(cur + 1); preload(cur - 1);
+    };
     const open = i => { lastFocus = document.activeElement; show(i); lb.classList.add('open'); document.body.style.overflow='hidden'; $('#lbX').focus(); };
     const close = () => { lb.classList.remove('open'); document.body.style.overflow=''; lastFocus && lastFocus.focus(); };
     document.querySelectorAll('[data-open]').forEach(b => b.onclick = () => open(+b.dataset.open));
@@ -512,10 +574,21 @@ const INVITE = {
     document.addEventListener('keydown', e => {
       if (!lb.classList.contains('open')) return;
       if (e.key === 'Escape') close(); if (e.key === 'ArrowLeft') show(cur-1); if (e.key === 'ArrowRight') show(cur+1);
+      if (e.key === 'Tab') {   // 포커스를 크게 보기 창 안에 가둔다
+        const f = [$('#lbX'), $('#lbP'), $('#lbN2')], k = f.indexOf(document.activeElement);
+        e.preventDefault(); f[(k + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
+      }
     });
-    let sx = null;
-    lb.addEventListener('touchstart', e => sx = e.touches[0].clientX, {passive:true});
-    lb.addEventListener('touchend', e => { if (sx == null) return; const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 40) show(cur + (dx < 0 ? 1 : -1)); sx = null; });
+    // 한 손가락으로 가로로 넘길 때만 사진 이동 (두 손가락 확대·세로 스크롤과 구분)
+    let sx = null, sy = 0, multi = false;
+    lb.addEventListener('touchstart', e => { multi = e.touches.length > 1; if (!multi) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; } }, {passive:true});
+    lb.addEventListener('touchend', e => {
+      if (sx == null || multi) { if (!e.touches.length) { sx = null; multi = false; } return; }
+      const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+      const zoomed = window.visualViewport && visualViewport.scale > 1.01;
+      if (!zoomed && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) show(cur + (dx < 0 ? 1 : -1));
+      sx = null;
+    });
   });
 
   // 꽃잎
